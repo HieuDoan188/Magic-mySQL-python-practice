@@ -1,0 +1,129 @@
+-- 2 tao cac bang theo yeu cau
+ 
+CREATE TABLE PHONG_BAN (
+	Mapd varchar(2) PRIMARY KEY,
+    Tenphong varchar(50)
+); 
+
+CREATE TABLE NHAN_VIEN (
+	Manv varchar(3) PRIMARY KEY,
+    Tennv varchar(50),
+    Mapb varchar(2)
+); 
+
+CREATE TABLE DE_NGHI (
+	Sotu varchar(7) PRIMARY KEY,
+    Ngay_tu datetime,
+    Manv varchar(3),
+    Sotien_tu int
+); 
+
+CREATE TABLE PHIEU_CHI (
+	Sopc varchar(5) PRIMARY KEY,
+    Ngay_chi datetime,
+    Sotu varchar(7),
+    Manv varchar(3),
+    Sotien_chi int
+); 
+
+--3 them du lieu vao cac bang 
+
+INSERT INTO phong_ban()
+VALUES  ('KT','Phòng kế toán'),
+		('NS','Phòng nhân sự'),
+        ('TV','Phòng tư vấn - chăm sóc khách hàng'),
+        ('MH','Phòng mua hàng'),
+        ('KD','Phòng kinh doanh');
+        
+INSERT INTO nhan_vien()
+VALUES ('A01','Hoàng Ngọc Anh','MH'),
+		('B01','Trần Văn Bình','NS'),
+        ('C01','Lê Thị Châu','KD'),
+        ('C02','Nguyễn Văn Chính','KD'),
+        ('D01','Lê Văn Dũng','KT'),
+        ('E01','Nguyễn Thị Thu Thủy','TV');
+		
+INSERT INTO de_nghi()
+VALUES ('2005001','2005-04-15','A01',10000000),
+       ('2005002','2005-04-20','B01',2000000),
+       ('2005003','2005-04-28','C01',3500000),
+       ('2005004','2005-05-10','C02',5000000),
+       ('2005005','2005-07-12','A01',4000000),
+       ('2005006','2005-08-14','C01',3000000);
+	   
+INSERT INTO phieu_chi()
+VALUES ('PC001','2005-04-15','2005001','A01',10000000),
+       ('PC002','2005-04-21','2005002','B01',2000000),
+       ('PC003','2005-04-28','2005003','C01',3500000),
+       ('PC004','2005-05-11','2005004','C02',2000000),
+       ('PC005','2005-05-13','2005004','C02',1000000),
+       ('PC006','2005-07-15','2005005','A01',2000000);
+	   
+-- cau 2.1
+SELECT * 
+FROM nhan_vien 
+WHERE Tennv like '% Văn %'
+
+-- cau 2.2
+SELECT d.Manv,n.Tennv,SUM(Sotien_tu) as Tong_tien_tu
+FROM de_nghi d JOIN nhan_vien n ON d.Manv=n.Manv 
+GROUP BY d.Manv;
+
+-- cau 2.3
+SELECT Sotu,date_format(Ngay_tu,'%Y-%m-%d') as Ngay_tu,Manv,Sotien_tu
+FROM de_nghi
+WHERE Sotu not in (SELECT Sotu FROM phieu_chi)
+
+-- cau 2.4
+SELECT Sotu,date_format(Ngay_tu,'%Y-%m-%d') as Ngay_tu,Manv,Sotien_tu
+FROM de_nghi
+WHERE Sotien_tu > (SELECT AVG(Sotien_tu) FROM de_nghi)
+
+-- cau 2.5
+SELECT d.Sotu,date_format(d.Ngay_tu,'%Y-%m-%d') as Ngay_tu,d.Manv,d.Sotien_tu
+FROM de_nghi d LEFT JOIN 
+(
+    SELECT Sotu,SUM(Sotien_chi) as tong_tien_chi
+    FROM phieu_chi
+    GROUP BY Sotu
+) p ON p.Sotu=d.Sotu
+WHERE p.tong_tien_chi < d.Sotien_tu OR p.sotu IS NULL;
+
+-- cau 2.6
+SELECT p.Mapd,p.Tenphong,sum(d.Sotien_tu) as tong_tien_tu 
+FROM de_nghi d JOIN nhan_vien n ON d.Manv=n.Manv JOIN phong_ban p ON n.Mapb=p.Mapd
+GROUP BY p.Mapd
+LIMIT 1
+
+-- cau 2.7
+-- view 
+CREATE VIEW myview
+AS
+SELECT n.Manv, n.Tennv, p.Mapd,p.Tenphong, m.tien_nv_tu
+FROM nhan_vien n JOIN
+     (
+        SELECT Manv,sum(Sotien_tu) as tien_nv_tu
+        FROM de_nghi
+        GROUP BY Manv
+     ) m ON n.Manv = m.Manv JOIN phong_ban p ON n.Mapb=p.Mapd
+	 
+-- truy van xep hang
+SELECT  Mapd, Manv, tien_nv_tu
+FROM
+    (
+        SELECT DENSE_RANK() OVER (PARTITION BY Mapd ORDER BY tien_nv_tu DESC) AS hang, Mapd, Manv, tien_nv_tu
+        FROM myview
+    ) q
+    WHERE hang=1;
+
+
+
+
+
+
+
+
+
+
+
+
